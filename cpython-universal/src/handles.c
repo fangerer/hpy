@@ -47,19 +47,31 @@ _py2h(PyObject *obj)
     Py_ssize_t i = h_free_list;
     h_free_list = ((Py_ssize_t)all_handles[i]) >> 1;
     all_handles[i] = obj;
+#ifdef GRAALVM
+    return (HPy){(void *)i};
+#else
     return (HPy){i};
+#endif
 }
 
 PyObject *
 _h2py(HPy h)
 {
+#ifdef GRAALVM
+    return all_handles[(HPy_ssize_t) h._i];
+#else
     return all_handles[h._i];
+#endif
 }
 
 void
 _hclose(HPy h)
 {
+#ifdef GRAALVM
+    Py_ssize_t i = (Py_ssize_t) h._i;
+#else
     Py_ssize_t i = h._i;
+#endif
     Py_XDECREF(all_handles[i]);
     all_handles[i] = (PyObject *)((h_free_list << 1) | 1);
     h_free_list = i;

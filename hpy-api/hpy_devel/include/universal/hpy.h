@@ -7,7 +7,13 @@
 
 typedef intptr_t HPy_ssize_t;
 
-struct _HPy_s { HPy_ssize_t _i; };
+struct _HPy_s { 
+#ifdef GRAALVM
+    void* _i; 
+#else
+    HPy_ssize_t _i; 
+#endif
+};
 typedef struct _HPy_s HPy;
 
 typedef struct _HPyContext_s *HPyContext;
@@ -16,6 +22,20 @@ typedef struct _object *(*_HPy_CPyCFunction)(struct _object *self,
                                              struct _object *args);
 
 #define _HPy_HIDDEN   __attribute__((visibility("hidden")))
+
+#ifdef GRAALVM
+
+#define HPy_NULL ((HPy){NULL})
+#define HPy_IsNull(x) ((x)._i == NULL)
+
+// XXX: we need to decide whether these are part of the official API or not,
+// and maybe introduce a better naming convetion. For now, they are needed for
+// ujson
+static inline HPy HPy_FromVoidP(void *p) { return (HPy){p}; }
+static inline void* HPy_AsVoidP(HPy h) { return h._i; }
+
+#else
+
 #define HPy_NULL ((HPy){0})
 #define HPy_IsNull(x) ((x)._i == 0)
 
@@ -24,6 +44,8 @@ typedef struct _object *(*_HPy_CPyCFunction)(struct _object *self,
 // ujson
 static inline HPy HPy_FromVoidP(void *p) { return (HPy){(HPy_ssize_t)p}; }
 static inline void* HPy_AsVoidP(HPy h) { return (void*)h._i; }
+
+#endif /* GRAALVM */
 
 
 #include "meth.h"
